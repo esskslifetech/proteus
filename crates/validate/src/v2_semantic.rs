@@ -14,14 +14,20 @@ impl SemanticValidator {
     }
 
     /// Validate variant against reference genome
-    pub fn validate_variant(&self, variant: &VariantEvent, reference: &ReferenceGenome) -> ValidationResult {
+    pub fn validate_variant(
+        &self,
+        variant: &VariantEvent,
+        reference: &ReferenceGenome,
+    ) -> ValidationResult {
         // Check contig exists
         let contig = match reference.contig(&variant.contig) {
             Some(c) => c,
-            None => return ValidationResult::Fail {
-                check: "contig_exists".to_string(),
-                message: format!("contig '{}' not found in reference", variant.contig),
-            },
+            None => {
+                return ValidationResult::Fail {
+                    check: "contig_exists".to_string(),
+                    message: format!("contig '{}' not found in reference", variant.contig),
+                }
+            }
         };
 
         // Check coordinate bounds
@@ -39,16 +45,54 @@ impl SemanticValidator {
         if !is_iupac_dna(&variant.ref_allele) || !is_iupac_dna(&variant.alt_allele) {
             return ValidationResult::Fail {
                 check: "iupac_alphabet".to_string(),
-                message: format!("non-IUPAC characters in alleles: ref={}, alt={}", variant.ref_allele, variant.alt_allele),
+                message: format!(
+                    "non-IUPAC characters in alleles: ref={}, alt={}",
+                    variant.ref_allele, variant.alt_allele
+                ),
             };
         }
 
-        ValidationResult::Pass { check: "semantic".to_string() }
+        ValidationResult::Pass {
+            check: "semantic".to_string(),
+        }
     }
 }
 
 fn is_iupac_dna(seq: &str) -> bool {
-    seq.bytes().all(|b| matches!(b, b'A' | b'C' | b'G' | b'T' | b'N' | b'R' | b'Y' | b'S' | b'W' | b'K' | b'M' | b'B' | b'D' | b'H' | b'V' | b'a' | b'c' | b'g' | b't' | b'n' | b'r' | b'y' | b's' | b'w' | b'k' | b'm' | b'b' | b'd' | b'h' | b'v'))
+    seq.bytes().all(|b| {
+        matches!(
+            b,
+            b'A' | b'C'
+                | b'G'
+                | b'T'
+                | b'N'
+                | b'R'
+                | b'Y'
+                | b'S'
+                | b'W'
+                | b'K'
+                | b'M'
+                | b'B'
+                | b'D'
+                | b'H'
+                | b'V'
+                | b'a'
+                | b'c'
+                | b'g'
+                | b't'
+                | b'n'
+                | b'r'
+                | b'y'
+                | b's'
+                | b'w'
+                | b'k'
+                | b'm'
+                | b'b'
+                | b'd'
+                | b'h'
+                | b'v'
+        )
+    })
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -77,7 +121,14 @@ mod tests {
                 .build(),
         );
         let validator = SemanticValidator::new();
-        let variant = VariantEvent::snv("v1".to_string(), "chr1".to_string(), 1, "A".to_string(), "T".to_string(), "test".to_string());
+        let variant = VariantEvent::snv(
+            "v1".to_string(),
+            "chr1".to_string(),
+            1,
+            "A".to_string(),
+            "T".to_string(),
+            "test".to_string(),
+        );
         let result = validator.validate_variant(&variant, &reference);
         assert!(result.is_pass());
     }
@@ -90,7 +141,14 @@ mod tests {
                 .build(),
         );
         let validator = SemanticValidator::new();
-        let variant = VariantEvent::snv("v1".to_string(), "chrX".to_string(), 1, "A".to_string(), "T".to_string(), "test".to_string());
+        let variant = VariantEvent::snv(
+            "v1".to_string(),
+            "chrX".to_string(),
+            1,
+            "A".to_string(),
+            "T".to_string(),
+            "test".to_string(),
+        );
         let result = validator.validate_variant(&variant, &reference);
         assert!(!result.is_pass());
     }

@@ -28,51 +28,21 @@ theme:
 
 markdown_extensions:
   - admonition
-  - codehilite
   - toc:
       permalink: true
   - pymdownx.details
-  - pymdownx.superfences:
-      fence_class: highlight
+  - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.highlight:
       anchor_linenums: true
-  - pymdownx.inline
-  - pymdownx.keys
-  - pymdownx.mark
-  - pymdownx.smartsymbols
-  - pymdownx.tilde
-  - pymdownx.caret
-  - pymdownx.betterem:
-      smart_enable: 'all'
   - pymdownx.tasklist:
       custom_checkbox: true
-  - pymdownx.emoji:
-      emoji_index: !!python/name:materialx.emoji.twemoji
-      emoji_generator: !!python/name:materialx.emoji.to_svg
 
 nav:
   - Home: index.md
   - Architecture:
-      - Overview: architecture/overview.md
-      - Polyglot Design: architecture/polyglot.md
-      - Simulation Layers: architecture/layers.md
-      - Validation: architecture/validation.md
-  - Guides:
-      - Quick Start: guides/quickstart.md
-      - CLI Usage: guides/cli.md
-      - Python API: guides/python-api.md
-      - REST API: guides/rest-api.md
-  - Reference:
-      - Schema: reference/schema.md
-      - Data Formats: reference/formats.md
-      - Report Model: reference/report.md
-  - Development:
-      - Contributing: development/contributing.md
-      - Testing: development/testing.md
-      - Benchmarks: development/benchmarks.md
-      - ADRs: development/adr/index.md
+      - Polyglot ADR: adr/001-polyglot-architecture.md
 
 plugins:
   - search
@@ -85,17 +55,9 @@ plugins:
             show_category_heading: true
             members:
               - __init__
-  - git-revision-date-localized:
-      enable_for_empty_pages: true
-  - minify:
-      minify_js: true
-      minify_css: true
-      html_compression: true
 
 extra:
   version: 0.1.0
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/proteus/proteus
-    - icon: fontawesome/brands/python
-      link: https://proteus.example.com
+      link: https://github.com/esskslifetech/proteus

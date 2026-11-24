@@ -43,12 +43,15 @@ Thumbs.db
 *.log
 logs/
 
+# Documentation build
+/site/
+
 # Generated simulation runs (multi-MB reports, figures, audio)
 /output/
 !/output/.gitkeep
-/test_output/
-/test_views_output/
-/view_test_output/
+test_output/
+test_views_output/
+view_test_output/
 /validation/benchmarks/results/
 
 # Data (large files - use DVC/LFS)

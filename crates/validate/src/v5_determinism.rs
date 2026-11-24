@@ -1,8 +1,8 @@
 //! V5: Determinism — seeded RNG, golden-file regression, property tests, fuzzing
 
 use rand::{rngs::StdRng, SeedableRng};
-use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
 pub struct DeterminismValidator {
@@ -90,7 +90,9 @@ impl GoldenFileTest {
         T: serde::Serialize + DeserializeOwned + std::fmt::Debug + PartialEq,
     {
         let output = compute();
-        let golden_path = self.golden_dir.join(format!("{}.golden.json", self.test_name));
+        let golden_path = self
+            .golden_dir
+            .join(format!("{}.golden.json", self.test_name));
 
         if self.update || !golden_path.exists() {
             std::fs::create_dir_all(&self.golden_dir).ok();
@@ -116,15 +118,29 @@ impl GoldenFileTest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GoldenResult {
-    Pass { path: std::path::PathBuf },
-    Fail { path: std::path::PathBuf, computed: String, expected: String },
-    Updated { path: std::path::PathBuf },
+    Pass {
+        path: std::path::PathBuf,
+    },
+    Fail {
+        path: std::path::PathBuf,
+        computed: String,
+        expected: String,
+    },
+    Updated {
+        path: std::path::PathBuf,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DeterminismResult {
-    Pass { name: String },
-    Fail { name: String, first: String, second: String },
+    Pass {
+        name: String,
+    },
+    Fail {
+        name: String,
+        first: String,
+        second: String,
+    },
 }
 
 impl DeterminismResult {

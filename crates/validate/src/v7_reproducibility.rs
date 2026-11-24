@@ -95,11 +95,11 @@ impl ContentStore {
     pub fn put(&self, name: &str, data: &[u8]) -> Result<ContentRef, ValidationError> {
         let hash = blake3::hash(data);
         let hash_bytes: HashBytes = *hash.as_bytes();
-        let hash_str = hex::encode(&hash_bytes);
+        let hash_str = hex::encode(hash_bytes);
         let dir = self.root.join(&hash_str[0..2]).join(&hash_str[2..4]);
-        std::fs::create_dir_all(&dir).map_err(|e| ValidationError::Io(e))?;
+        std::fs::create_dir_all(&dir).map_err(ValidationError::Io)?;
         let path = dir.join(&hash_str[4..]);
-        std::fs::write(&path, data).map_err(|e| ValidationError::Io(e))?;
+        std::fs::write(&path, data).map_err(ValidationError::Io)?;
 
         Ok(ContentRef {
             name: name.to_string(),
@@ -112,23 +112,25 @@ impl ContentStore {
 
     pub fn get(&self, hash: &HashBytes) -> Result<Vec<u8>, ValidationError> {
         let hash_str = hex::encode(hash);
-        let path = self.root
+        let path = self
+            .root
             .join(&hash_str[0..2])
             .join(&hash_str[2..4])
             .join(&hash_str[4..]);
-        std::fs::read(path).map_err(|e| ValidationError::Io(e))
+        std::fs::read(path).map_err(ValidationError::Io)
     }
 
     pub fn verify(&self, hash: &HashBytes) -> Result<bool, ValidationError> {
         let hash_str = hex::encode(hash);
-        let path = self.root
+        let path = self
+            .root
             .join(&hash_str[0..2])
             .join(&hash_str[2..4])
             .join(&hash_str[4..]);
         if !path.exists() {
             return Ok(false);
         }
-        let data = std::fs::read(&path).map_err(|e| ValidationError::Io(e))?;
+        let data = std::fs::read(&path).map_err(ValidationError::Io)?;
         Ok(blake3::hash(&data).as_bytes() == hash)
     }
 }
@@ -228,7 +230,8 @@ ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 ENV PYTHONPATH=/proteus/python:$PYTHONPATH
 
 ENTRYPOINT ["proteus"]
-"#.to_string()
+"#
+    .to_string()
 }
 
 #[cfg(test)]

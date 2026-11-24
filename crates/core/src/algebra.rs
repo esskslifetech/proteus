@@ -5,10 +5,7 @@ use crate::variant::{VariantEvent, VariantType};
 use std::collections::HashMap;
 
 /// Transform variant coordinates after another variant is applied
-pub fn transform_coordinates(
-    variant: &VariantEvent,
-    prior: &VariantEvent,
-) -> VariantEvent {
+pub fn transform_coordinates(variant: &VariantEvent, prior: &VariantEvent) -> VariantEvent {
     if variant.contig != prior.contig {
         return variant.clone();
     }
@@ -26,17 +23,21 @@ pub fn transform_coordinates(
     // For now, adjust coordinates based on length delta
     if variant.start > prior_end {
         // Variant is after prior variant
-        transformed.start = (transformed.start as i64 + delta) as i64;
-        transformed.end = (transformed.end as i64 + delta) as i64;
+        transformed.start += delta;
+        transformed.end += delta;
     } else if variant.start >= prior.start && variant.end <= prior_end {
         // Variant is contained within prior variant
         // This is complex - for now mark as needing review
-        transformed.annotations.insert("transform_status".to_string(), "contained".to_string());
+        transformed
+            .annotations
+            .insert("transform_status".to_string(), "contained".to_string());
     } else {
         // Overlapping but not contained
-        transformed.annotations.insert("transform_status".to_string(), "overlapping".to_string());
-        transformed.start = (transformed.start as i64 + delta) as i64;
-        transformed.end = (transformed.end as i64 + delta) as i64;
+        transformed
+            .annotations
+            .insert("transform_status".to_string(), "overlapping".to_string());
+        transformed.start += delta;
+        transformed.end += delta;
     }
 
     transformed
@@ -89,26 +90,39 @@ fn can_merge(a: &VariantEvent, b: &VariantEvent) -> bool {
 fn merge_variants(a: &VariantEvent, b: &VariantEvent) -> VariantEvent {
     let mut merged = a.clone();
     merged.end = b.end.max(a.end);
-    merged.ref_allele = format!("{}{}", a.ref_allele, &b.ref_allele[a.end as usize - a.start as usize..]);
-    merged.alt_allele = format!("{}{}", a.alt_allele, &b.alt_allele[a.end as usize - a.start as usize..]);
+    merged.ref_allele = format!(
+        "{}{}",
+        a.ref_allele,
+        &b.ref_allele[a.end as usize - a.start as usize..]
+    );
+    merged.alt_allele = format!(
+        "{}{}",
+        a.alt_allele,
+        &b.alt_allele[a.end as usize - a.start as usize..]
+    );
     merged.id = format!("{}_merged_{}", a.id, b.id);
     merged
 }
 
 /// Normalize a variant to its leftmost representation (for VCF compatibility)
-pub fn normalize_variant(variant: &VariantEvent, ref_genome: &crate::reference::ReferenceGenome) -> Result<VariantEvent> {
+pub fn normalize_variant(
+    variant: &VariantEvent,
+    ref_genome: &crate::reference::ReferenceGenome,
+) -> Result<VariantEvent> {
     // For SNVs, already normalized
     if variant.ty == VariantType::Snv {
         return Ok(variant.clone());
     }
 
     // For indels, left-align
-    let contig = ref_genome.contig(&variant.contig)
-        .ok_or_else(|| CoreError::InvalidCoordinate {
-            contig: variant.contig.clone(),
-            pos: variant.start,
-            len: 0,
-        })?;
+    let contig =
+        ref_genome
+            .contig(&variant.contig)
+            .ok_or_else(|| CoreError::InvalidCoordinate {
+                contig: variant.contig.clone(),
+                pos: variant.start,
+                len: 0,
+            })?;
 
     let mut normalized = variant.clone();
     let mut pos = variant.start as usize;
@@ -121,11 +135,9 @@ pub fn normalize_variant(variant: &VariantEvent, ref_genome: &crate::reference::
 
         // Check if we can shift left
         let can_shift = match variant.ty {
-            VariantType::Deletion => {
-                ref_bytes.len() > 0 && ref_bytes[0] == prev_base
-            }
+            VariantType::Deletion => !ref_bytes.is_empty() && ref_bytes[0] == prev_base,
             VariantType::Insertion => {
-                alt_bytes.len() > 0 && alt_bytes[alt_bytes.len() - 1] == prev_base
+                !alt_bytes.is_empty() && alt_bytes[alt_bytes.len() - 1] == prev_base
             }
             _ => false,
         };
@@ -140,7 +152,9 @@ pub fn normalize_variant(variant: &VariantEvent, ref_genome: &crate::reference::
     if pos != variant.start as usize {
         normalized.start = pos as i64;
         normalized.end = (pos as i64 + variant.ref_allele.len() as i64 - 1).max(pos as i64);
-        normalized.annotations.insert("normalized".to_string(), "true".to_string());
+        normalized
+            .annotations
+            .insert("normalized".to_string(), "true".to_string());
     }
 
     Ok(normalized)
@@ -185,7 +199,7 @@ pub fn project_to_transcript(
                 variant_id: variant.id.clone(),
                 transcript_id: transcript.id.clone(),
                 cds_start: rel_start.max(1),
-                cds_end: rel_end.min((cds_end - cds_start + 1) as i64),
+                cds_end: rel_end.min(cds_end - cds_start + 1),
                 exon_index: transcript.exons.iter().position(|e| e == exon)?,
             });
         }
@@ -242,8 +256,22 @@ mod tests {
                 .build(),
         );
 
-        let v1 = VariantEvent::snv("v1".to_string(), "chr1".to_string(), 2, "T".to_string(), "C".to_string(), "test".to_string());
-        let v2 = VariantEvent::snv("v2".to_string(), "chr1".to_string(), 3, "C".to_string(), "G".to_string(), "test".to_string());
+        let v1 = VariantEvent::snv(
+            "v1".to_string(),
+            "chr1".to_string(),
+            2,
+            "T".to_string(),
+            "C".to_string(),
+            "test".to_string(),
+        );
+        let v2 = VariantEvent::snv(
+            "v2".to_string(),
+            "chr1".to_string(),
+            3,
+            "C".to_string(),
+            "G".to_string(),
+            "test".to_string(),
+        );
 
         let composed = compose_variants(&[v1, v2]);
         assert_eq!(composed.len(), 1); // Should merge into MNV
@@ -251,8 +279,21 @@ mod tests {
 
     #[test]
     fn test_transform_coordinates_after_insertion() {
-        let prior = VariantEvent::insertion("prior".to_string(), "chr1".to_string(), 5, "AAA".to_string(), "test".to_string());
-        let variant = VariantEvent::snv("var".to_string(), "chr1".to_string(), 10, "G".to_string(), "T".to_string(), "test".to_string());
+        let prior = VariantEvent::insertion(
+            "prior".to_string(),
+            "chr1".to_string(),
+            5,
+            "AAA".to_string(),
+            "test".to_string(),
+        );
+        let variant = VariantEvent::snv(
+            "var".to_string(),
+            "chr1".to_string(),
+            10,
+            "G".to_string(),
+            "T".to_string(),
+            "test".to_string(),
+        );
 
         let transformed = transform_coordinates(&variant, &prior);
         assert_eq!(transformed.start, 13); // 10 + 3
@@ -261,8 +302,21 @@ mod tests {
 
     #[test]
     fn test_transform_coordinates_before_insertion() {
-        let prior = VariantEvent::insertion("prior".to_string(), "chr1".to_string(), 10, "AAA".to_string(), "test".to_string());
-        let variant = VariantEvent::snv("var".to_string(), "chr1".to_string(), 5, "G".to_string(), "T".to_string(), "test".to_string());
+        let prior = VariantEvent::insertion(
+            "prior".to_string(),
+            "chr1".to_string(),
+            10,
+            "AAA".to_string(),
+            "test".to_string(),
+        );
+        let variant = VariantEvent::snv(
+            "var".to_string(),
+            "chr1".to_string(),
+            5,
+            "G".to_string(),
+            "T".to_string(),
+            "test".to_string(),
+        );
 
         let transformed = transform_coordinates(&variant, &prior);
         assert_eq!(transformed.start, 5); // Unchanged

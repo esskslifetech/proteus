@@ -10,6 +10,12 @@ pub struct SchemaValidator {
     schemas: HashMap<String, Value>,
 }
 
+impl Default for SchemaValidator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SchemaValidator {
     pub fn new() -> Self {
         Self {
@@ -22,16 +28,24 @@ impl SchemaValidator {
         Ok(())
     }
 
-    pub fn validate(&self, name: &str, instance: &Value) -> Result<ValidationResult, ValidationError> {
-        let _schema = self.schemas.get(name)
+    pub fn validate(
+        &self,
+        name: &str,
+        instance: &Value,
+    ) -> Result<ValidationResult, ValidationError> {
+        let _schema = self
+            .schemas
+            .get(name)
             .ok_or_else(|| ValidationError::Schema(format!("no schema registered for {}", name)))?;
 
         // Simplified validation - just check it's valid JSON
         // Real implementation would use jsonschema crate
         let pass = instance.is_object() || instance.is_array();
-        
+
         if pass {
-            Ok(ValidationResult::Pass { schema: name.to_string() })
+            Ok(ValidationResult::Pass {
+                schema: name.to_string(),
+            })
         } else {
             Ok(ValidationResult::Fail {
                 schema: name.to_string(),

@@ -128,11 +128,14 @@ impl GenomeState {
     /// Get the sequence for a contig with all applied variants
     /// This is O(variants) not O(genome) - the key to "instant" mutation
     pub fn get_sequence(&self, contig: &str) -> Result<Vec<u8>> {
-        let ref_contig = self.reference.contig(contig).ok_or_else(|| CoreError::InvalidCoordinate {
-            contig: contig.to_string(),
-            pos: 0,
-            len: 0,
-        })?;
+        let ref_contig =
+            self.reference
+                .contig(contig)
+                .ok_or_else(|| CoreError::InvalidCoordinate {
+                    contig: contig.to_string(),
+                    pos: 0,
+                    len: 0,
+                })?;
 
         let mut sequence = ref_contig.sequence.clone();
 
@@ -189,11 +192,13 @@ impl GenomeState {
         }
 
         // Compare applied variants
-        let self_vars: HashMap<_, _> = self.applied_variants()
+        let self_vars: HashMap<_, _> = self
+            .applied_variants()
             .iter()
             .map(|v| (v.id.clone(), v))
             .collect();
-        let other_vars: HashMap<_, _> = other.applied_variants()
+        let other_vars: HashMap<_, _> = other
+            .applied_variants()
             .iter()
             .map(|v| (v.id.clone(), v))
             .collect();
@@ -216,7 +221,8 @@ impl GenomeState {
         for (id, var) in &self_vars {
             if let Some(other_var) = other_vars.get(id) {
                 if var != other_var {
-                    diff.changed_variants.push(((*var).clone(), (*other_var).clone()));
+                    diff.changed_variants
+                        .push(((*var).clone(), (*other_var).clone()));
                 }
             }
         }
@@ -287,11 +293,13 @@ pub struct StateTransition {
 impl GenomeState {
     /// Create a transition record from self to new state
     pub fn transition_to(&self, new_state: &Self) -> StateTransition {
-        let self_vars: HashMap<_, _> = self.applied_variants()
+        let self_vars: HashMap<_, _> = self
+            .applied_variants()
             .iter()
             .map(|v| (v.id.clone(), v))
             .collect();
-        let new_vars: HashMap<_, _> = new_state.applied_variants()
+        let new_vars: HashMap<_, _> = new_state
+            .applied_variants()
             .iter()
             .map(|v| (v.id.clone(), v))
             .collect();
@@ -412,7 +420,10 @@ mod tests {
         // Reverted state should be bit-identical to original
         assert_eq!(reverted.hash(), state.hash());
         assert_eq!(reverted.variant_count(), 0);
-        assert_eq!(reverted.get_sequence("chr1").unwrap(), state.get_sequence("chr1").unwrap());
+        assert_eq!(
+            reverted.get_sequence("chr1").unwrap(),
+            state.get_sequence("chr1").unwrap()
+        );
     }
 
     #[test]
@@ -492,8 +503,22 @@ mod tests {
     fn test_batch_apply() {
         let state = test_genome();
         let events = vec![
-            VariantEvent::snv("v1".to_string(), "chr1".to_string(), 5, "A".to_string(), "T".to_string(), "test".to_string()),
-            VariantEvent::snv("v2".to_string(), "chr1".to_string(), 8, "G".to_string(), "C".to_string(), "test".to_string()),
+            VariantEvent::snv(
+                "v1".to_string(),
+                "chr1".to_string(),
+                5,
+                "A".to_string(),
+                "T".to_string(),
+                "test".to_string(),
+            ),
+            VariantEvent::snv(
+                "v2".to_string(),
+                "chr1".to_string(),
+                8,
+                "G".to_string(),
+                "C".to_string(),
+                "test".to_string(),
+            ),
         ];
         let mutated = state.apply_batch(events).unwrap();
         assert_eq!(mutated.variant_count(), 2);
@@ -532,7 +557,9 @@ mod tests {
         assert_ne!(state_a.hash(), state.apply(c).unwrap().hash());
 
         // Replaying the same log from baseline must reproduce the mutated hash.
-        let replay = state.apply_batch(state_a.applied_variants().into_iter().cloned().collect()).unwrap();
+        let replay = state
+            .apply_batch(state_a.applied_variants().to_vec())
+            .unwrap();
         assert_eq!(replay.hash(), state_a.hash());
     }
 }

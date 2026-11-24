@@ -38,30 +38,46 @@ impl PhysicalValidator {
             }
         }
 
-        ValidationResult::Pass { check: "mass_balance".to_string() }
+        ValidationResult::Pass {
+            check: "mass_balance".to_string(),
+        }
     }
 
     /// Validate charge balance
     pub fn validate_charge_balance(&self, reaction: &MetabolicReaction) -> ValidationResult {
-        let reactant_charge: i32 = reaction.reactants.iter()
+        let reactant_charge: i32 = reaction
+            .reactants
+            .iter()
             .map(|(m, s)| get_charge(m) * *s)
             .sum();
-        let product_charge: i32 = reaction.products.iter()
+        let product_charge: i32 = reaction
+            .products
+            .iter()
             .map(|(m, s)| get_charge(m) * *s)
             .sum();
 
         if reactant_charge != product_charge {
             return ValidationResult::Fail {
                 check: "charge_balance".to_string(),
-                message: format!("Charge not balanced: reactants={}, products={}", reactant_charge, product_charge),
+                message: format!(
+                    "Charge not balanced: reactants={}, products={}",
+                    reactant_charge, product_charge
+                ),
             };
         }
 
-        ValidationResult::Pass { check: "charge_balance".to_string() }
+        ValidationResult::Pass {
+            check: "charge_balance".to_string(),
+        }
     }
 
     /// Validate numerical bounds (NaN, Inf, intervals)
-    pub fn validate_numerical(&self, values: &[f64], name: &str, bounds: Option<(f64, f64)>) -> ValidationResult {
+    pub fn validate_numerical(
+        &self,
+        values: &[f64],
+        name: &str,
+        bounds: Option<(f64, f64)>,
+    ) -> ValidationResult {
         for (i, &v) in values.iter().enumerate() {
             if v.is_nan() {
                 return ValidationResult::Fail {
@@ -79,22 +95,38 @@ impl PhysicalValidator {
                 if v < min || v > max {
                     return ValidationResult::Fail {
                         check: "bounds_check".to_string(),
-                        message: format!("{}[{}] = {} outside bounds [{}, {}]", name, i, v, min, max),
+                        message: format!(
+                            "{}[{}] = {} outside bounds [{}, {}]",
+                            name, i, v, min, max
+                        ),
                     };
                 }
             }
         }
-        ValidationResult::Pass { check: "numerical".to_string() }
+        ValidationResult::Pass {
+            check: "numerical".to_string(),
+        }
     }
 
     /// Validate solver convergence
-    pub fn validate_solver_convergence(&self, status: SolverStatus, tolerance: f64) -> ValidationResult {
+    pub fn validate_solver_convergence(
+        &self,
+        status: SolverStatus,
+        tolerance: f64,
+    ) -> ValidationResult {
         match status {
-            SolverStatus::Optimal => ValidationResult::Pass { check: "solver".to_string() },
-            SolverStatus::Suboptimal { gap } if gap <= tolerance => ValidationResult::Pass { check: "solver".to_string() },
+            SolverStatus::Optimal => ValidationResult::Pass {
+                check: "solver".to_string(),
+            },
+            SolverStatus::Suboptimal { gap } if gap <= tolerance => ValidationResult::Pass {
+                check: "solver".to_string(),
+            },
             SolverStatus::Suboptimal { gap } => ValidationResult::Fail {
                 check: "solver".to_string(),
-                message: format!("Solver suboptimal with gap {} > tolerance {}", gap, tolerance),
+                message: format!(
+                    "Solver suboptimal with gap {} > tolerance {}",
+                    gap, tolerance
+                ),
             },
             SolverStatus::Infeasible => ValidationResult::Fail {
                 check: "solver".to_string(),
@@ -138,11 +170,17 @@ fn parse_chemical_formula(formula: &str) -> HashMap<String, i32> {
 
 fn get_charge(metabolite: &str) -> i32 {
     // Simplified charge lookup
-    if metabolite.ends_with("^-") { -1 }
-    else if metabolite.ends_with("^2-") { -2 }
-    else if metabolite.ends_with("^+") { 1 }
-    else if metabolite.ends_with("^2+") { 2 }
-    else { 0 }
+    if metabolite.ends_with("^-") {
+        -1
+    } else if metabolite.ends_with("^2-") {
+        -2
+    } else if metabolite.ends_with("^+") {
+        1
+    } else if metabolite.ends_with("^2+") {
+        2
+    } else {
+        0
+    }
 }
 
 #[derive(Debug, Clone)]

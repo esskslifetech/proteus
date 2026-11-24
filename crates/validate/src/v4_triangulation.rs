@@ -23,9 +23,7 @@ impl Triangulator {
         }
 
         // Extract numeric values
-        let values: Vec<f64> = results.iter()
-            .filter_map(|r| r.value)
-            .collect();
+        let values: Vec<f64> = results.iter().filter_map(|r| r.value).collect();
 
         if values.len() < 2 {
             return TriangulationResult::InsufficientData {
@@ -36,11 +34,12 @@ impl Triangulator {
 
         // Compute statistics
         let mean = values.iter().sum::<f64>() / values.len() as f64;
-        let variance = values.iter()
-            .map(|v| (v - mean).powi(2))
-            .sum::<f64>() / values.len() as f64;
+        let variance = values.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / values.len() as f64;
         let std_dev = variance.sqrt();
-        let max_diff: f64 = values.iter().map(|v| (v - mean).abs()).fold(0.0_f64, f64::max);
+        let max_diff: f64 = values
+            .iter()
+            .map(|v| (v - mean).abs())
+            .fold(0.0_f64, f64::max);
 
         let passes = max_diff <= self.tolerance;
 
@@ -161,9 +160,21 @@ mod tests {
     fn test_triangulation_pass() {
         let triangulator = Triangulator::new(1e-6);
         let results = vec![
-            ImplementationResult { name: "rust".to_string(), value: Some(1.0000001), metadata: Default::default() },
-            ImplementationResult { name: "cpp".to_string(), value: Some(1.0000002), metadata: Default::default() },
-            ImplementationResult { name: "python".to_string(), value: Some(0.9999999), metadata: Default::default() },
+            ImplementationResult {
+                name: "rust".to_string(),
+                value: Some(1.0000001),
+                metadata: Default::default(),
+            },
+            ImplementationResult {
+                name: "cpp".to_string(),
+                value: Some(1.0000002),
+                metadata: Default::default(),
+            },
+            ImplementationResult {
+                name: "python".to_string(),
+                value: Some(0.9999999),
+                metadata: Default::default(),
+            },
         ];
         let result = triangulator.compare("test", &results);
         assert!(result.passes());
@@ -173,8 +184,16 @@ mod tests {
     fn test_triangulation_fail() {
         let triangulator = Triangulator::new(1e-6);
         let results = vec![
-            ImplementationResult { name: "rust".to_string(), value: Some(1.0), metadata: Default::default() },
-            ImplementationResult { name: "cpp".to_string(), value: Some(1.1), metadata: Default::default() },
+            ImplementationResult {
+                name: "rust".to_string(),
+                value: Some(1.0),
+                metadata: Default::default(),
+            },
+            ImplementationResult {
+                name: "cpp".to_string(),
+                value: Some(1.1),
+                metadata: Default::default(),
+            },
         ];
         let result = triangulator.compare("test", &results);
         assert!(!result.passes());

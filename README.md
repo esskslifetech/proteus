@@ -1,5 +1,7 @@
 # Proteus: Human Genome Mutation Simulation & Viability Analysis
 
+[![CI](https://github.com/esskslifetech/proteus/actions/workflows/ci.yml/badge.svg)](https://github.com/esskslifetech/proteus/actions/workflows/ci.yml)
+
 > **Core loop:** load reference → inject variant(s) → simulate reference & mutated across L1–L4 → time-dynamic viability (survival window, point of no return, hysteresis) → revert → per-layer diff → report + evidence bundle
 
 Polyglot (Rust / C++ / Python) system that simulates human DNA mutations across biological layers with event-sourced exact revert, multi-layer validation (V1–V7), and auditable evidence-bundle reporting.
@@ -97,7 +99,7 @@ maturin develop --release
 ```powershell
 cd proteus\python
 uv sync
-uv run pytest -q                 # 37 passed, 3 skipped (optional C++/SUNDIALS tests skipped when not built)
+uv run pytest -q                 # 39 passed, 1 skipped when the Rust extension is built
 ```
 
 ### 4. C++ — MSYS2 Build (MinGW, Python 3.14)
@@ -147,25 +149,19 @@ Produces: `build-msvc/lib/Release/proteus_cpp.cp311-win_amd64.pyd`
 
 ```powershell
 cd proteus\python
-uv run python _demo.py
+uv run python run_full_sim.py
 ```
 
-Output:
+Output (GAPDH/PGK1/PKM knockout demo):
 ```
 success: True
-verdict: Verdict.VIABLE composite: 0.8914
+verdict: NON_VIABLE  composite: 0.0000
 validation: {'V1': 'pass', 'V2': 'pass', 'V3': 'pass', 'V4': 'pass', 'V5': 'pass', 'V6': 'pass', 'V7': 'pass'}
-baseline == reverted: True
-
---- layer diffs ---
-  L0: 1 added variants
-  L1: 3 changed fields
-    max_pathogenicity: 0 -> 0.562615 (delta=0.562615, high)
-    mean_pathogenicity: 0 -> 0.562615 (delta=0.562615, high)
-    max_severity: 0 -> 5 (delta=5, high)
-  L2: 3 changed fields
-    max_delta_delta_g: 0 -> 1.93321 (delta=1.93321, high)
-    ...
+survival window: 5.0909 h
+point of no return: energy_depletion @ 5.0909 h (severity 0.947)
+genome revert exact: True
+phenotype matches baseline: False
+hysteresis index: 1.0
 ```
 
 ### Python API

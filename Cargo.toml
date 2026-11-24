@@ -12,7 +12,6 @@ version = "0.1.0"
 authors = ["ESS KS Life Tech"]
 license = "Apache-2.0"
 repository = "https://github.com/esskslifetech/proteus"
-homepage = "https://github.com/esskslifetech/proteus"
 
 [workspace.dependencies]
 # Core

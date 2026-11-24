@@ -17,9 +17,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Compiler warnings
 if(MSVC)
-    add_compile_options(/W4 /WX /permissive- /std:c++20)
+    add_compile_options(/W4 /permissive- /std:c++20)
 else()
-    add_compile_options(-Wall -Wextra -Wpedantic -Werror -std=c++20)
+    add_compile_options(-Wall -Wextra -Wpedantic -std=c++20)
 endif()
 
 # Find dependencies

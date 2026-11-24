@@ -68,7 +68,7 @@ pub struct ReferenceGenome {
     #[serde(skip)]
     contig_order: Vec<String>,
     #[serde(with = "serde_bytes")]
-    pub genome_hash: Vec<u8>,  // blake3 hash of concatenated contig hashes
+    pub genome_hash: Vec<u8>, // blake3 hash of concatenated contig hashes
 }
 
 impl ReferenceGenome {
@@ -113,7 +113,10 @@ impl ReferenceGenome {
     /// Get the content hash of the entire genome
     pub fn hash(&self) -> blake3::Hash {
         blake3::Hash::from_bytes(
-            self.genome_hash.as_slice().try_into().expect("genome_hash is 32 bytes"),
+            self.genome_hash
+                .as_slice()
+                .try_into()
+                .expect("genome_hash is 32 bytes"),
         )
     }
 

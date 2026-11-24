@@ -195,12 +195,13 @@ impl VariantEvent {
         // For non-insertions, check reference allele matches
         if self.ty != VariantType::Insertion && !self.ref_allele.is_empty() {
             let ref_slice = &ref_seq[(self.start - 1) as usize..self.end as usize];
-            let ref_str = std::str::from_utf8(ref_slice).map_err(|_| CoreError::AlleleMismatch {
-                contig: self.contig.clone(),
-                pos: self.start,
-                expected: self.ref_allele.clone(),
-                found: "invalid UTF-8".to_string(),
-            })?;
+            let ref_str =
+                std::str::from_utf8(ref_slice).map_err(|_| CoreError::AlleleMismatch {
+                    contig: self.contig.clone(),
+                    pos: self.start,
+                    expected: self.ref_allele.clone(),
+                    found: "invalid UTF-8".to_string(),
+                })?;
 
             if ref_str != self.ref_allele {
                 return Err(CoreError::AlleleMismatch {
@@ -235,7 +236,10 @@ impl VcfRecord {
     /// Convert to VariantEvent (takes first ALT allele)
     pub fn to_variant_event(&self, source: String) -> VariantEvent {
         let alt = self.alt_alleles.first().cloned().unwrap_or_default();
-        let id = self.id.clone().unwrap_or_else(|| format!("{}:{}", self.chrom, self.pos));
+        let id = self
+            .id
+            .clone()
+            .unwrap_or_else(|| format!("{}:{}", self.chrom, self.pos));
         let ty = classify_variant(&self.ref_allele, &alt);
         VariantEvent {
             id,
@@ -261,8 +265,16 @@ pub fn classify_variant(ref_allele: &str, alt_allele: &str) -> VariantType {
         // Both non-empty
         (false, false) if ref_allele.len() == 1 && alt_allele.len() == 1 => VariantType::Snv,
         (false, false) if ref_allele.len() == alt_allele.len() => VariantType::Mnv,
-        (false, false) if alt_allele.len() > ref_allele.len() && alt_allele.starts_with(ref_allele) => VariantType::Insertion,
-        (false, false) if alt_allele.len() < ref_allele.len() && ref_allele.starts_with(alt_allele) => VariantType::Deletion,
+        (false, false)
+            if alt_allele.len() > ref_allele.len() && alt_allele.starts_with(ref_allele) =>
+        {
+            VariantType::Insertion
+        }
+        (false, false)
+            if alt_allele.len() < ref_allele.len() && ref_allele.starts_with(alt_allele) =>
+        {
+            VariantType::Deletion
+        }
         (false, false) => VariantType::Delins, // Different lengths, not a simple prefix extension
         // One empty
         (true, false) => VariantType::Insertion,

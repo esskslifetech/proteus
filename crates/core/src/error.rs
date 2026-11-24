@@ -4,7 +4,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum CoreError {
-
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
 
@@ -15,7 +14,12 @@ pub enum CoreError {
     InvalidCoordinate { contig: String, pos: i64, len: i64 },
 
     #[error("Allele mismatch: expected {expected}, found {found} at {contig}:{pos}")]
-    AlleleMismatch { contig: String, pos: i64, expected: String, found: String },
+    AlleleMismatch {
+        contig: String,
+        pos: i64,
+        expected: String,
+        found: String,
+    },
 
     #[error("Immutable reference genome cannot be modified")]
     ImmutableReference,

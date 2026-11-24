@@ -2,11 +2,12 @@
 
 use pyo3::prelude::*;
 // Import core types directly to avoid ambiguity from proteus_validate re-exports
-use ::proteus_core::reference::{ReferenceGenome as CoreReferenceGenome, ReferenceGenomeBuilder as CoreReferenceGenomeBuilder};
+use ::proteus_core::reference::{
+    ReferenceGenome as CoreReferenceGenome, ReferenceGenomeBuilder as CoreReferenceGenomeBuilder,
+};
 use ::proteus_core::state::{GenomeState as CoreGenomeState, LayerDiff as CoreLayerDiff};
 use ::proteus_core::variant::{VariantEvent as CoreVariantEvent, VariantType as CoreVariantType};
 use std::sync::Arc;
-use hex;
 
 /// PyO3 wrapper for the core Rust genome state
 #[pyclass]
@@ -24,7 +25,9 @@ impl PyGenomeState {
     }
 
     fn apply(&self, event: &PyVariantEvent) -> PyResult<PyGenomeState> {
-        let result = self.inner.apply(event.inner.clone())
+        let result = self
+            .inner
+            .apply(event.inner.clone())
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
         Ok(PyGenomeState { inner: result })
     }
@@ -32,14 +35,17 @@ impl PyGenomeState {
     fn apply_batch(&self, events: Vec<PyVariantEvent>) -> PyResult<PyGenomeState> {
         let mut result = self.inner.clone();
         for event in events {
-            result = result.apply(event.inner.clone())
+            result = result
+                .apply(event.inner.clone())
                 .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
         }
         Ok(PyGenomeState { inner: result })
     }
 
     fn revert(&self, target: usize) -> PyResult<PyGenomeState> {
-        let result = self.inner.revert(target)
+        let result = self
+            .inner
+            .revert(target)
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
         Ok(PyGenomeState { inner: result })
     }
@@ -51,13 +57,17 @@ impl PyGenomeState {
     }
 
     fn revert_last(&self, n: usize) -> PyResult<PyGenomeState> {
-        let result = self.inner.revert_last(n)
+        let result = self
+            .inner
+            .revert_last(n)
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
         Ok(PyGenomeState { inner: result })
     }
 
     fn applied_variants(&self) -> Vec<PyVariantEvent> {
-        self.inner.applied_variants().iter()
+        self.inner
+            .applied_variants()
+            .iter()
             .map(|v| PyVariantEvent { inner: v.clone() })
             .collect()
     }
@@ -67,7 +77,8 @@ impl PyGenomeState {
     }
 
     fn get_sequence(&self, contig: &str) -> PyResult<Vec<u8>> {
-        self.inner.get_sequence(contig)
+        self.inner
+            .get_sequence(contig)
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
     }
 
@@ -100,7 +111,9 @@ impl PyReferenceGenome {
     #[new]
     fn new(assembly: String, contigs: Vec<(String, Vec<u8>)>) -> Self {
         let builder = CoreReferenceGenomeBuilder::new(assembly);
-        let builder = contigs.into_iter().fold(builder, |b, (name, seq)| b.add_contig(name, seq));
+        let builder = contigs
+            .into_iter()
+            .fold(builder, |b, (name, seq)| b.add_contig(name, seq));
         Self {
             inner: Arc::new(builder.build()),
         }
@@ -142,6 +155,7 @@ pub struct PyVariantEvent {
 #[pymethods]
 impl PyVariantEvent {
     #[new]
+    #[allow(clippy::too_many_arguments)]
     fn new(
         id: String,
         variant_type: PyVariantType,
@@ -172,21 +186,41 @@ impl PyVariantEvent {
     }
 
     #[staticmethod]
-    fn snv(id: String, contig: String, pos: i64, ref_allele: String, alt_allele: String, source: String) -> Self {
+    fn snv(
+        id: String,
+        contig: String,
+        pos: i64,
+        ref_allele: String,
+        alt_allele: String,
+        source: String,
+    ) -> Self {
         Self {
             inner: CoreVariantEvent::snv(id, contig, pos, ref_allele, alt_allele, source),
         }
     }
 
     #[staticmethod]
-    fn insertion(id: String, contig: String, pos: i64, inserted_seq: String, source: String) -> Self {
+    fn insertion(
+        id: String,
+        contig: String,
+        pos: i64,
+        inserted_seq: String,
+        source: String,
+    ) -> Self {
         Self {
             inner: CoreVariantEvent::insertion(id, contig, pos, inserted_seq, source),
         }
     }
 
     #[staticmethod]
-    fn deletion(id: String, contig: String, start: i64, end: i64, deleted_seq: String, source: String) -> Self {
+    fn deletion(
+        id: String,
+        contig: String,
+        start: i64,
+        end: i64,
+        deleted_seq: String,
+        source: String,
+    ) -> Self {
         Self {
             inner: CoreVariantEvent::deletion(id, contig, start, end, deleted_seq, source),
         }
@@ -325,22 +359,33 @@ impl PyLayerDiff {
 
     #[getter]
     fn added_variants(&self) -> Vec<PyVariantEvent> {
-        self.inner.added_variants.iter()
+        self.inner
+            .added_variants
+            .iter()
             .map(|v| PyVariantEvent { inner: v.clone() })
             .collect()
     }
 
     #[getter]
     fn removed_variants(&self) -> Vec<PyVariantEvent> {
-        self.inner.removed_variants.iter()
+        self.inner
+            .removed_variants
+            .iter()
             .map(|v| PyVariantEvent { inner: v.clone() })
             .collect()
     }
 
     #[getter]
     fn changed_variants(&self) -> Vec<(PyVariantEvent, PyVariantEvent)> {
-        self.inner.changed_variants.iter()
-            .map(|(a, b)| (PyVariantEvent { inner: a.clone() }, PyVariantEvent { inner: b.clone() }))
+        self.inner
+            .changed_variants
+            .iter()
+            .map(|(a, b)| {
+                (
+                    PyVariantEvent { inner: a.clone() },
+                    PyVariantEvent { inner: b.clone() },
+                )
+            })
             .collect()
     }
 }
