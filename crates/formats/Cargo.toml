@@ -1,0 +1,14 @@
+[package]
+name = "proteus-formats"
+version = { workspace = true }
+edition = "2021"
+authors = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+description = "Unified readers/writers for all genomics formats"
+
+[dependencies]
+anyhow = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }

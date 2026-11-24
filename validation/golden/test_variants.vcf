@@ -1,0 +1,18 @@
+##fileformat=VCFv4.3
+##fileDate=20241118
+##source=ProteusGoldenData
+##reference=test_genome.fasta
+##contig=<ID=chr1,length=120>
+##contig=<ID=chr2,length=120>
+##contig=<ID=chrM,length=120>
+##INFO=<ID=GENE,Number=1,Type=String,Description="Gene symbol">
+##INFO=<ID=CONSEQUENCE,Number=1,Type=String,Description="VEP consequence">
+##INFO=<ID=PATHOGENICITY,Number=1,Type=Float,Description="AlphaMissense score">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr1	10	rs12345	A	T	100	PASS	GENE=TEST1;CONSEQUENCE=missense_variant;PATHOGENICITY=0.12
+chr1	25	rs12346	C	G	100	PASS	GENE=TEST1;CONSEQUENCE=synonymous_variant;PATHOGENICITY=0.01
+chr1	50	rs12347	G	A	100	PASS	GENE=TEST2;CONSEQUENCE=stop_gained;PATHOGENICITY=0.95
+chr1	75	rs12348	T	TC	100	PASS	GENE=TEST2;CONSEQUENCE=frameshift_variant;PATHOGENICITY=0.88
+chr2	10	rs12349	A	G	100	PASS	GENE=TEST3;CONSEQUENCE=missense_variant;PATHOGENICITY=0.45
+chr2	30	rs12350	C	T	100	PASS	GENE=TEST3;CONSEQUENCE=splice_donor_variant;PATHOGENICITY=0.72
+chrM	5	rs12351	G	A	100	PASS	GENE=MT-ND1;CONSEQUENCE=missense_variant;PATHOGENICITY=0.60

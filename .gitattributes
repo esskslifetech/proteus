@@ -1,0 +1,45 @@
+# Normalize line endings for text files
+* text=auto
+
+# Explicit text types
+*.rs text
+*.py text
+*.toml text
+*.md text
+*.yml text
+*.yaml text
+*.json text
+*.jsonld text
+*.jinja text
+*.html text
+*.tex text
+*.c text
+*.h text
+*.hpp text
+*.cpp text
+*.cmake text
+CMakeLists.txt text
+Makefile text
+Dockerfile text
+*.sh text eol=lf
+
+# Windows scripts keep CRLF
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.wav binary
+*.pdf binary
+*.fa binary
+*.fasta binary
+*.gz binary
+*.zip binary
+*.pyd binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.lib binary

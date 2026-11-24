@@ -1,0 +1,26 @@
+##gff-version 3
+##sequence-region chr1 1 120
+##sequence-region chr2 1 120
+##sequence-region chrM 1 120
+chr1	Proteus	gene	5	55	.	+	.	ID=gene_TEST1;Name=TEST1;biotype=protein_coding
+chr1	Proteus	mRNA	5	55	.	+	.	ID=transcript_TEST1_1;Parent=gene_TEST1;Name=TEST1_1
+chr1	Proteus	exon	5	20	.	+	.	ID=exon_TEST1_1_1;Parent=transcript_TEST1_1
+chr1	Proteus	exon	35	55	.	+	.	ID=exon_TEST1_1_2;Parent=transcript_TEST1_1
+chr1	Proteus	CDS	10	20	.	+	0	ID=cds_TEST1_1_1;Parent=transcript_TEST1_1
+chr1	Proteus	CDS	35	50	.	+	0	ID=cds_TEST1_1_2;Parent=transcript_TEST1_1
+chr1	Proteus	gene	45	115	.	-	.	ID=gene_TEST2;Name=TEST2;biotype=protein_coding
+chr1	Proteus	mRNA	45	115	.	-	.	ID=transcript_TEST2_1;Parent=gene_TEST2;Name=TEST2_1
+chr1	Proteus	exon	45	80	.	-	.	ID=exon_TEST2_1_1;Parent=transcript_TEST2_1
+chr1	Proteus	exon	90	115	.	-	.	ID=exon_TEST2_1_2;Parent=transcript_TEST2_1
+chr1	Proteus	CDS	45	80	.	-	0	ID=cds_TEST2_1_1;Parent=transcript_TEST2_1
+chr1	Proteus	CDS	90	105	.	-	0	ID=cds_TEST2_1_2;Parent=transcript_TEST2_1
+chr2	Proteus	gene	5	65	.	+	.	ID=gene_TEST3;Name=TEST3;biotype=protein_coding
+chr2	Proteus	mRNA	5	65	.	+	.	ID=transcript_TEST3_1;Parent=gene_TEST3;Name=TEST3_1
+chr2	Proteus	exon	5	40	.	+	.	ID=exon_TEST3_1_1;Parent=transcript_TEST3_1
+chr2	Proteus	exon	50	65	.	+	.	ID=exon_TEST3_1_2;Parent=transcript_TEST3_1
+chr2	Proteus	CDS	10	40	.	+	0	ID=cds_TEST3_1_1;Parent=transcript_TEST3_1
+chr2	Proteus	CDS	50	60	.	+	0	ID=cds_TEST3_1_2;Parent=transcript_TEST3_1
+chrM	Proteus	gene	1	50	.	+	.	ID=gene_MT_ND1;Name=MT-ND1;biotype=protein_coding
+chrM	Proteus	mRNA	1	50	.	+	.	ID=transcript_MT_ND1_1;Parent=gene_MT_ND1;Name=MT-ND1_1
+chrM	Proteus	exon	1	50	.	+	.	ID=exon_MT_ND1_1_1;Parent=transcript_MT_ND1_1
+chrM	Proteus	CDS	1	50	.	+	0	ID=cds_MT_ND1_1_1;Parent=transcript_MT_ND1_1

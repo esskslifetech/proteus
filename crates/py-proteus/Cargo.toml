@@ -1,0 +1,17 @@
+[package]
+name = "py-proteus"
+version = { workspace = true }
+edition = "2021"
+authors = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+description = "Python bindings for proteus via PyO3"
+
+[lib]
+name = "proteus_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { workspace = true, features = ["extension-module", "abi3-py38"] }
+proteus-core = { path = "../core" }
+hex = { workspace = true }

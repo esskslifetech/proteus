@@ -1,0 +1,297 @@
+syntax = "proto3";
+
+package proteus;
+
+option cc_enable_arenas = true;
+option java_multiple_files = true;
+option java_package = "com.proteus.schema";
+option python_package = "proteus.schema";
+
+// ============================================================================
+// Core identifiers and content-addressing
+// ============================================================================
+
+message ContentHash {
+  string algorithm = 1;  // "blake3", "sha256"
+  bytes digest = 2;
+}
+
+message ResourceRef {
+  ContentHash hash = 1;
+  string uri = 2;  // optional human-readable reference
+}
+
+// ============================================================================
+// L0: Sequence layer
+// ============================================================================
+
+message ReferenceGenome {
+  string assembly = 1;  // e.g., "GRCh38.p14"
+  map<string, Contig> contigs = 2;
+  ContentHash hash = 3;
+}
+
+message Contig {
+  string name = 1;
+  int64 length = 2;
+  ContentHash sequence_hash = 3;  // hash of the actual sequence bytes
+}
+
+message VariantEvent {
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    SNV = 1;
+    MNV = 2;
+    INSERTION = 3;
+    DELETION = 4;
+    DELINS = 5;
+    INVERSION = 6;
+    DUPLICATION = 7;
+    TRANSLOCATION = 8;
+    CNV = 9;
+    STR_EXPANSION = 10;
+    RNA_EDIT = 11;
+    SPLICE_SITE = 12;
+  }
+
+  string id = 1;  // unique event ID
+  Type type = 2;
+  string contig = 3;
+  int64 start = 4;     // 1-based inclusive
+  int64 end = 5;       // 1-based inclusive (for SNV: start == end)
+  string ref = 6;      // reference allele
+  string alt = 7;      // alternate allele
+  map<string, string> annotations = 8;  // arbitrary key-value
+  int64 timestamp_ns = 9;  // event sourcing timestamp
+  string source = 10;  // "user", "simulation", "revert"
+}
+
+message GenomeState {
+  ResourceRef reference = 1;
+  repeated VariantEvent overlays = 2;  // append-only event log
+  int64 head_index = 3;  // truncation point for revert
+}
+
+// ============================================================================
+// L1: Variant semantics layer
+// ============================================================================
+
+message VariantEffect {
+  string variant_id = 1;
+  string gene_id = 2;
+  string transcript_id = 3;
+  enum Consequence {
+    CONSEQUENCE_UNSPECIFIED = 0;
+    TRANSCRIPT_ABLATION = 1;
+    SPLICE_ACCEPTOR_VARIANT = 2;
+    SPLICE_DONOR_VARIANT = 3;
+    STOP_GAINED = 4;
+    FRAMESHIFT_VARIANT = 5;
+    STOP_LOST = 6;
+    START_LOST = 7;
+    TRANSCRIPT_AMPLIFICATION = 8;
+    INFIME_INSERTION = 9;
+    INFRAME_DELETION = 10;
+    MISSENSE_VARIANT = 11;
+    PROTEIN_ALTERING_VARIANT = 12;
+    SPLICE_REGION_VARIANT = 13;
+    INCOMPLETE_TERMINAL_CODON_VARIANT = 14;
+    START_RETAINED_VARIANT = 15;
+    STOP_RETAINED_VARIANT = 16;
+    SYNONYMOUS_VARIANT = 17;
+    CODING_SEQUENCE_VARIANT = 18;
+    MATURE_MIRNA_VARIANT = 19;
+    FIVE_PRIME_UTR_VARIANT = 20;
+    THREE_PRIME_UTR_VARIANT = 21;
+    NON_CODING_TRANSCRIPT_EXON_VARIANT = 22;
+    INTRON_VARIANT = 23;
+    NMD_TRANSCRIPT_VARIANT = 24;
+    NON_CODING_TRANSCRIPT_VARIANT = 25;
+    UPSTREAM_GENE_VARIANT = 26;
+    DOWNSTREAM_GENE_VARIANT = 27;
+    TF_BINDING_SITE_VARIANT = 28;
+    REGULATORY_REGION_VARIANT = 29;
+    FEATURE_ELONGATION = 30;
+    FEATURE_TRUNCATION = 31;
+    INTERGENIC_VARIANT = 32;
+  }
+  Consequence consequence = 4;
+  int32 cds_position = 5;
+  int32 protein_position = 6;
+  string amino_acid_change = 7;  // e.g., "p.Cys61Gly"
+  double pathogenicity_score = 8;  // 0-1, e.g., AlphaMissense
+  double splice_score_delta = 9;   // e.g., SpliceAI delta
+  map<string, double> regulatory_scores = 10;  // e.g., Enformer, Sei
+}
+
+// ============================================================================
+// L2: Protein layer
+// ============================================================================
+
+message ProteinEffect {
+  string variant_id = 1;
+  string uniprot_id = 2;
+  string domain_id = 3;  // Pfam/InterPro
+  double delta_delta_g = 4;  // kcal/mol, positive = destabilizing
+  double confidence = 5;     // 0-1
+  enum Method {
+    METHOD_UNSPECIFIED = 0;
+    ESM_FOLD = 1;
+    ALPHAFOLD2 = 2;
+    ROSETTA = 3;
+    FOLDX = 4;
+    DEEP_DDG = 5;
+  }
+  Method method = 6;
+  ContentHash structure_hash = 7;  // hash of predicted structure
+  repeated DomainImpact domain_impacts = 8;
+}
+
+message DomainImpact {
+  string domain_id = 1;
+  double delta_delta_g = 2;
+  bool active_site_disrupted = 3;
+  bool binding_interface_disrupted = 4;
+}
+
+// ============================================================================
+// L3: Pathway/Cell layer
+// ============================================================================
+
+message PathwayState {
+  string model_id = 1;  // e.g., "Recon3D", "Human-GEM"
+  ContentHash model_hash = 2;
+  map<string, double> flux = 3;  // reaction_id -> flux value
+  map<string, double> metabolite_concentration = 4;
+  double objective_value = 5;  // biomass, ATP, etc.
+  enum SolverStatus {
+    SOLVER_UNSPECIFIED = 0;
+    OPTIMAL = 1;
+    SUBOPTIMAL = 2;
+    INFEASIBLE = 3;
+    UNBOUNDED = 4;
+    NUMERICAL_ERROR = 5;
+  }
+  SolverStatus status = 6;
+  map<string, double> shadow_prices = 7;
+}
+
+message GRNState {
+  string network_id = 1;
+  map<string, double> expression = 2;  // gene_id -> TPM/FPKM
+  map<string, double> activity = 3;    // TF_id -> activity score
+  map<string, map<string, double>> edges = 4;  // regulator -> target -> weight
+}
+
+// ============================================================================
+// L4: Tissue/Organ layer
+// ============================================================================
+
+message TissueState {
+  string tissue_id = 1;  // e.g., "liver", "heart", "brain_cortex"
+  map<string, double> markers = 2;  // physiological markers
+  map<string, double> pk_pd = 3;    // drug concentrations, effects
+  map<string, double> neuro_proxies = 4;  // named neurophysiological proxies
+  // Consciousness is NOT modeled. Instead we track:
+  // - EEG spectral power bands (delta, theta, alpha, beta, gamma)
+  // - Perturbational Complexity Index (PCI)
+  // - Global Neuronal Workspace (GNW) activation metrics
+  // - Integrated Information (Phi) approximations
+  // - Neuronal avalanche statistics
+}
+
+message OrganismState {
+  map<string, TissueState> tissues = 1;
+  map<string, double> systemic = 2;  // blood pressure, HR, temp, glucose, etc.
+}
+
+// ============================================================================
+// L5: Viability layer
+// ============================================================================
+
+message ViabilityScore {
+  double composite = 1;  // 0-1, 1 = viable
+  map<string, double> layer_scores = 2;  // L1..L4 contributions
+  map<string, double> weights = 3;
+  repeated string failed_gates = 4;  // which hard thresholds were violated
+  enum Verdict {
+    VERDICT_UNSPECIFIED = 0;
+    VIABLE = 1;
+    NON_VIABLE = 2;
+    UNCERTAIN = 3;
+  }
+  Verdict verdict = 5;
+  double confidence = 6;  // 0-1
+}
+
+// ============================================================================
+// Diff and Report
+// ============================================================================
+
+message LayerDiff {
+  string layer = 1;  // "L0", "L1", "L2", "L3", "L4", "L5"
+  map<string, string> added = 2;
+  map<string, string> removed = 3;
+  map<string, DiffEntry> changed = 4;
+}
+
+message DiffEntry {
+  string before = 1;
+  string after = 2;
+  double magnitude = 3;  // normalized 0-1
+  string significance = 4;  // "high", "medium", "low", "unknown"
+}
+
+message EvidenceChain {
+  string claim = 1;
+  ContentHash input_hash = 2;
+  string tool = 3;  // e.g., "proteus-l2@0.4.1"
+  ContentHash tool_hash = 4;
+  map<string, string> params = 5;
+  ContentHash output_hash = 6;
+  string upstream_ref = 7;  // e.g., "VCF row 12"
+  enum Confidence {
+    CONFIDENCE_UNSPECIFIED = 0;
+    HIGH = 1;
+    MEDIUM = 2;
+    LOW = 3;
+  }
+  Confidence confidence = 8;
+  repeated string validation_passes = 9;  // e.g., ["V1", "V2", "V3", "V4", "V5"]
+}
+
+message SimulationReport {
+  string simulation_id = 1;
+  int64 timestamp_ns = 2;
+  GenomeState baseline = 3;
+  GenomeState mutated = 4;
+  GenomeState reverted = 5;
+  repeated VariantEvent applied_variants = 6;
+  ViabilityScore viability = 7;
+  repeated LayerDiff diffs = 8;
+  repeated EvidenceChain evidence = 9;
+  ContentHash provenance_manifest = 10;  // RO-Crate root hash
+  map<string, string> validation_results = 11;  // V1..V7 pass/fail
+}
+
+// ============================================================================
+// Pipeline orchestration
+// ============================================================================
+
+message PipelineConfig {
+  string reference_genome_uri = 1;
+  repeated VariantEvent variants = 2;
+  map<string, string> layer_configs = 3;
+  map<string, double> viability_weights = 4;
+  repeated string enabled_validations = 5;  // subset of V1..V7
+  bool produce_report = 6;
+  string output_dir = 7;
+}
+
+message PipelineResult {
+  string run_id = 1;
+  bool success = 2;
+  string error = 3;
+  SimulationReport report = 4;
+  map<string, ContentHash> artifacts = 5;  // name -> hash
+}

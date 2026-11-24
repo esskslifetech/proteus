@@ -1,0 +1,71 @@
+# Build artifacts
+/target/
+/cpp/build/
+/cpp/build-msvc/
+/cpp/bin/
+/cpp/lib/
+*.so
+*.dylib
+*.dll
+*.lib
+*.a
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.env
+
+# UV
+.uv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Generated simulation runs (multi-MB reports, figures, audio)
+/output/
+!/output/.gitkeep
+/test_output/
+/test_views_output/
+/view_test_output/
+/validation/benchmarks/results/
+
+# Data (large files - use DVC/LFS)
+/data/
+!/data/.gitkeep
+
+# Container
+containers/*.tar
+containers/*.tar.gz
+
+# Temporary
+tmp/
+temp/
+*.tmp
+
+# Coverage
+coverage/
+
+# Fuzz
+fuzz/artifacts/

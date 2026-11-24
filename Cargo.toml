@@ -1,0 +1,46 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/core",
+    "crates/validate",
+    "crates/formats",
+    "crates/py-proteus",
+]
+
+[workspace.package]
+version = "0.1.0"
+authors = ["ESS KS Life Tech"]
+license = "Apache-2.0"
+repository = "https://github.com/esskslifetech/proteus"
+homepage = "https://github.com/esskslifetech/proteus"
+
+[workspace.dependencies]
+# Core
+anyhow = "1.0"
+thiserror = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_bytes = "0.11"
+blake3 = "1.0"
+hex = "0.4"
+
+# Python bindings
+pyo3 = { version = "0.21", features = ["extension-module", "abi3-py38"] }
+
+# Testing
+proptest = "1.0"
+criterion = "0.5"
+rand = "0.8"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.dev]
+debug = true
+overflow-checks = true
+
+[profile.test]
+debug = true
+overflow-checks = true

@@ -1,0 +1,262 @@
+name: Proteus CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 2 * * 0'  # Weekly full test
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # ========================================================================
+  # Rust workspace
+  # ========================================================================
+  rust-test:
+    name: Rust Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        rust: [stable, beta]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: rustfmt, clippy
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - name: Build
+        run: cargo build --workspace --all-targets
+      - name: Test
+        run: cargo test --workspace --all-targets
+      - name: Fuzz (24h on schedule only)
+        if: github.event_name == 'schedule'
+        run: |
+          cargo install cargo-fuzz
+          cd crates/core && cargo fuzz run target_1 -- -max_total_time=86400
+
+  rust-audit:
+    name: Rust Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Audit dependencies
+        run: |
+          cargo install cargo-audit cargo-deny
+          cargo audit
+          cargo deny check
+
+  # ========================================================================
+  # C++ build and test
+  # ========================================================================
+  cpp-build:
+    name: C++ Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        build_type: [Release, Debug]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libeigen3-dev libsundials-dev libhighs-dev cmake
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install eigen sundials highs cmake
+      - name: Configure CMake
+        run: |
+          cmake -S cpp -B cpp/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+      - name: Build
+        run: cmake --build cpp/build --config ${{ matrix.build_type }} -j
+      - name: Test
+        run: ctest --test-dir cpp/build --output-on-failure
+
+  # ========================================================================
+  # Python tests
+  # ========================================================================
+  python-test:
+    name: Python Tests (${{ matrix.os }}, py${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install uv
+        run: pip install uv
+      - name: Cache uv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('python/pyproject.toml') }}
+      - name: Install Rust (for maturin)
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install Python deps
+        run: |
+          cd python
+          uv sync --all-extras
+      - name: Build Python package
+        run: |
+          cd python
+          uv run maturin develop --release
+      - name: Run tests
+        run: |
+          cd python
+          uv run pytest -v --tb=short -q
+      - name: Type check
+        run: |
+          cd python
+          uv run mypy proteus
+      - name: Lint
+        run: |
+          cd python
+          uv run ruff check proteus tests
+
+  # ========================================================================
+  # Cross-language triangulation (V4)
+  # ========================================================================
+  triangulation:
+    name: Triangulation Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install C++ deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libeigen3-dev libsundials-dev libhighs-dev cmake
+      - name: Build all
+        run: |
+          cargo build --workspace --release
+          cmake -S cpp -B cpp/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build cpp/build -j
+          cd python && pip install uv && uv sync --all-extras && uv run maturin develop --release
+      - name: Run triangulation tests
+        run: |
+          cd python
+          uv run pytest validation/triangulation -v
+
+  # ========================================================================
+  # Scientific benchmarks (V6)
+  # ========================================================================
+  benchmarks:
+    name: Scientific Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libeigen3-dev libsundials-dev libhighs-dev cmake
+      - name: Build
+        run: |
+          cargo build --workspace --release
+          cmake -S cpp -B cpp/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build cpp/build -j
+          cd python && pip install uv && uv sync --all-extras && uv run maturin develop --release
+      - name: Run benchmarks
+        run: |
+          cd python
+          uv run pytest validation/benchmarks -v --benchmark-only
+
+  # ========================================================================
+  # Container build
+  # ========================================================================
+  container:
+    name: Container Build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build container
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: containers/Dockerfile
+          push: false
+          tags: proteus:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ========================================================================
+  # Documentation
+  # ========================================================================
+  docs:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install docs deps
+        run: pip install mkdocs mkdocs-material mkdocstrings[python]
+      - name: Build docs
+        run: mkdocs build --strict
+      - name: Deploy docs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+
+  # ========================================================================
+  # Release
+  # ========================================================================
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [rust-test, cpp-build, python-test, triangulation]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build release artifacts
+        run: |
+          cargo build --workspace --release
+          cargo pack --all
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            target/release/*.so
+            target/release/*.dll
+            target/release/*.dylib
+          generate_release_notes: true
